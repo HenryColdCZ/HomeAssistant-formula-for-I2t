@@ -1,0 +1,61 @@
+sensor:
+  - platform: integration
+    name: "I²t"
+    unique_id: i2t
+    source: sensor.proud_na_druhou_2
+    unit_time: min
+    round: 2
+    method: trapezoidal
+    max_sub_interval: 
+        seconds: 1
+
+  - platform: derivative
+    source: sensor.i2t_zatez
+    name: "I²t zatížení"
+    round: 2
+    unit_time: min
+    unit: "A²min"
+    time_window: "00:05:00"
+    max_sub_interval:
+        seconds: 1
+
+template:
+  - sensor:
+      - name: Proud na druhou
+        unique_id: i2
+        state_class: measurement
+        unit_of_measurement: "A²"
+        state: >
+          {{ (states('sensor.proud_ac_va') | float(0) * states('sensor.proud_ac_va') | float(0))  | float(0) | round(2) }}
+
+      - name: "I²t (%)"
+        unit_of_measurement: "%"
+        unique_id: i2t_percent
+        state_class: measurement
+        device_class: POWER_FACTOR
+        state: >
+          {% set i2t = states('sensor.i2t_zatizeni') | float(0) %}
+          {% set In = states('input_number.jistic_nomin') | float(13) %}
+          {% set InPlus = states('input_number.jistic_nomin_plus') | float(5) %}
+          {% set limit = (In + InPlus)**2 %}
+          {{ (100 * i2t / limit) | round(2) }}
+
+input_number:
+
+# ======= Nominální hodnota výstupního jističe pro výpočet I2t
+  jistic_nomin:
+    name: "Jistič nominální proud"
+    min: 1
+    max: 32
+    step: 1
+    unit_of_measurement: "A"
+    mode: box
+    
+# ======= Přídavek na nominální proud jističe pro výpočet I2t
+  jistic_nomin_plus:
+    name: "Jistič přídavek"
+    min: 1
+    max: 32
+    step: 1
+    unit_of_measurement: "A"
+    mode: box
